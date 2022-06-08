@@ -1,8 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
-  getFetch();
-})
-
-function getFetch() {
+// recupère les données de l'api et les ajoutes au document html
   fetch("http://localhost:3000/api/products")
     .then(function (res) {
       if (res.ok) {
@@ -26,4 +22,3 @@ function getFetch() {
     }).catch((error) => {
       alert("une erreur est survenue ! Veuillez contacter l'administrateur.");
     });
-}

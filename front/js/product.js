@@ -18,7 +18,7 @@
             addToCart(myCart, id, colors, quantity);
         })
 
-
+//  Récupère le local storage 
 function getStorage() {
     var myCart = {};
     if (JSON.parse(localStorage.getItem("myCart")) !== null) {
@@ -29,6 +29,7 @@ function getStorage() {
     }
 }
 
+// Met à jours la page avec le produit correspondant
 function getFetch(id, itemImg, title, price, description, colors) {
     fetch(`http://localhost:3000/api/products/${id}`)
         .then((res) => {
@@ -53,8 +54,8 @@ function getFetch(id, itemImg, title, price, description, colors) {
             console.log("erreur :" + err);
         })
 }
-
-async function addToCart(myCart, id, colors, quantity) {
+// ajoute l'article au panier
+function addToCart(myCart, id, colors, quantity) {
     var text = "";
     if (colors.value == "") {
         text = "Veuillez choisir une couleur.";
@@ -77,6 +78,7 @@ async function addToCart(myCart, id, colors, quantity) {
     }
 }
 
+// informe l'utilisateur que son produit aété ajouté au panier
 function msgAddToCart(text) {
     const button = document.querySelector(".item__content__addButton");
     let msg = document.createElement("div");

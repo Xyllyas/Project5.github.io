@@ -4,22 +4,28 @@ const inputQuantity = document.getElementsByClassName("itemQuantity");
 const deleteItem = document.getElementsByClassName("deleteItem");
 var cart = JSON.parse(localStorage.getItem("myCart"))
 
+// regarde si le panier est plein ou vide
 if (cart != null) {
-  var cart_id = getCartId(cart);
+  var cartId = getCartId(cart);
 } else {
-  cart_id = {};
+  cartId = {};
 }
 
+
+
+
+
+// au refresh de la page vide le contenue du formulaire
 var input = document.getElementsByTagName("input");
 for (var i = 0; i < input.length; i++) {
   if (input[i].type === "text" || input[i].type === "email") {
     input[i].value = "";
   }
 }
-afficher(cart_id, cart);
+afficher(cartId, cart);
 
 setInterval(() => {
-  if (inputQuantity.length == Object.keys(cart_id).length) {
+  if (inputQuantity.length == Object.keys(cartId).length) {
     clearInterval();
 
     getTotalQuantity(totalQuantity, inputQuantity);
@@ -29,30 +35,29 @@ setInterval(() => {
 
     changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart);
     supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem);
-    
+
 
     sendForm(arrayProduct);
   }
 }, 1000);
 
 
-
+// créer un objet contenant les id des produits
 function getCartId(cart) {
   let nb = 0;
-  let cart_id = {};
+  let cartId = {};
   for (let i in Object.keys(cart)) {
-    cart_id[`${nb}`] = `${Object.values(cart)[i].id}`
+    cartId[`${nb}`] = `${Object.values(cart)[i].id}`
     nb++;
   }
-  return cart_id
+  return cartId
 }
 
-
-function afficher(cart_id, cart) {
+// ajoute à la page tous les produits contenue dans le localStorage
+function afficher(cartId, cart) {
   var content = "";
-  var value = 0;
-  for (let i in Object.keys(cart_id)) {
-    fetch(`http://localhost:3000/api/products/${Object.values(cart_id)[i]}`)
+  for (let i in Object.keys(cartId)) {
+    fetch(`http://localhost:3000/api/products/${Object.values(cartId)[i]}`)
       .then((res) => {
         if (res.ok) {
           return res.json();
@@ -91,6 +96,7 @@ function afficher(cart_id, cart) {
   }
 }
 
+// récupère la quantité total des produits
 function getTotalQuantity(total, nbItem) {
   let value = 0;
   for (let item of nbItem) {
@@ -100,8 +106,8 @@ function getTotalQuantity(total, nbItem) {
   return value;
 }
 
+// ajoute le prix total de la quantité de chaque produit
 function getTotalPrice(total, nbItem) {
-  const divDesc = document.querySelectorAll(".cart__item__content__description");
   let value = 0;
   let totalPrice = {};
   let i = 0;
@@ -111,27 +117,27 @@ function getTotalPrice(total, nbItem) {
     let quantity = 0;
     let price = 0;
     quantity += parseInt(item.value);
-    price += parseInt(divDesc[i].children[2].textContent);
+    price += parseInt(document.querySelectorAll(".cart__item__content__description")[i].children[2].textContent);
     totalPrice[nb] = quantity * price;
     i++;
     nb++;
   }
-
-  value = (Object.values(totalPrice).reduce((prev, curr) => prev + curr, 0));
-  total.textContent = value;
+  total.textContent = (Object.values(totalPrice).reduce((prev, curr) => prev + curr, 0));
 }
 
+// au changement de quantité met a jour la quantité, le prix et le local storage
 function changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart) {
   for (const input of inputQuantity) {
     input.addEventListener('input', () => {
       getTotalQuantity(totalQuantity, inputQuantity);
       getTotalPrice(totalPrice, inputQuantity);
 
-      let color = input.closest('article').getElementsByClassName("cart__item__content__description")[0].children[1].textContent;
       let quantity = input.closest('article').getElementsByClassName("cart__item__content__settings__quantity")[0].children[1].value;
+      let color = input.closest('article').dataset.color;
+      let id = input.closest('article').dataset.id;
 
       for (i = 0; i < Object.values(cart).length; i++) {
-        if (color == Object.values(cart)[i].colors) {
+        if (color == Object.values(cart)[i].colors && id == Object.values(cart)[i].id) {
           Object.values(cart)[i].quantity = quantity;
           localStorage.setItem("myCart", JSON.stringify(cart));
         }
@@ -139,85 +145,83 @@ function changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart) {
     });
   };
 }
-function supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem){
-      
+
+// supprime le produit de la page et du localstorage
+function supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem) {
   for (const suppr of deleteItem) {
     suppr.addEventListener('click', () => {
-      let e = suppr.closest('article');
-      let divDesc = e.getElementsByClassName("cart__item__content__description")[0];
-      let color = divDesc.children[1].textContent;
-      let quantity = document.getElementsByClassName("cart__item__content__settings__quantity")[0].children[1].value;
-      e.parentElement.removeChild(e);
+      let color = suppr.closest('article').dataset.color;
+      let id = suppr.closest('article').dataset.id;
 
-      for (i in cart) {
-        if (color == cart[i].colors && quantity == cart[i].quantity) {
-          delete cart[i];
+      var divDesc = suppr.closest('article').children[1];
+
+      suppr.closest('article').remove();
+      for (var i = 0; i < Object.keys(cart).length; i++) {
+        if (color == Object.values(cart)[i].colors && id == Object.values(cart)[i].id) {
+          delete cart[Object.keys(cart)[i]];
           localStorage.setItem("myCart", JSON.stringify(cart));
         }
       }
-      
+
       getTotalQuantity(totalQuantity, inputQuantity);
       getTotalPrice(totalPrice, inputQuantity);
       createArrayProduct();
       popUpSupprItem(divDesc);
 
-      
+
     })
   }
-  }
+}
 
+// vérifie le formulaire
 function sendForm(arrayProduct) {
-  let ok = 0;
-
   document.getElementById("firstName").addEventListener("input", (e) => {
     if (/^[^0-9_!¡?÷?¿\\+=@#$%ˆ&*(){}|~<>;:"[\]]{2,}$/.test(e.target.value)) {
       document.getElementById("firstNameErrorMsg").innerText = "";
     } else {
-      document.getElementById("firstNameErrorMsg").innerText = "Invalide.";
+      document.getElementById("firstNameErrorMsg").innerText = "Prénom invalide.";
     }
   });
   document.getElementById("lastName").addEventListener("input", (e) => {
     if (/^[^0-9_!¡?÷?¿\\+=@#$%ˆ&*(){}|~<>;:"[\]]{2,}$/.test(e.target.value)) {
       document.getElementById("lastNameErrorMsg").innerText = "";
     } else {
-      ok = 0;
-      document.getElementById("lastNameErrorMsg").innerText = "Invalide.";
+      document.getElementById("lastNameErrorMsg").innerText = "Nom invalide.";
     }
   });
   document.getElementById("address").addEventListener("input", (e) => {
     if (/^[^_!¡?÷?¿\\+=@#$%ˆ&*(){}|~<>;:"[\]]{2,}$/.test(e.target.value)) {
       document.getElementById("addressErrorMsg").innerText = "";
     } else {
-      document.getElementById("addressErrorMsg").innerText = "Invalide.";
+      document.getElementById("addressErrorMsg").innerText = "Adresse nvalide.";
     }
   });
   document.getElementById("city").addEventListener("input", (e) => {
     if (/^[^0-9_!¡?÷?¿\\+=@#$%ˆ&*(){}|~<>;:"[\]]{2,}$/.test(e.target.value)) {
       document.getElementById("cityErrorMsg").innerText = "";
     } else {
-      document.getElementById("cityErrorMsg").innerText = "Invalide.";
+      document.getElementById("cityErrorMsg").innerText = "Ville invalide.";
     }
   });
   document.getElementById("email").addEventListener("input", (e) => {
     if (/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(e.target.value)) {
       document.getElementById("emailErrorMsg").innerText = "";
     } else {
-      document.getElementById("emailErrorMsg").innerText = "Invalide.";
+      document.getElementById("emailErrorMsg").innerText = "Email invalide.";
     }
   });
-
+  // check permet de vérifié chaque input du formulaire 
   let check = 0;
 
   document.getElementById("order").addEventListener('click', (e) => {
     for (let i = 0; i < 5; i++) {
       if (document.querySelector(".cart__order__form").children[i].children[2].textContent == "" && document.querySelector(".cart__order__form").children[i].children[1].value != "") {
-
-        check++;
-        if (check == 5) {
+        check++; // si l'input est bon ajoute 1 à check
+        if (check == 5) { //si les 5 input sont bon utilise la fonction postFetch
           e.preventDefault();
           postFetch(arrayProduct);
         }
-      } else {
+      } else { // sinon reinitialise a 0
         e.preventDefault();
         check = 0;
       }
@@ -225,6 +229,7 @@ function sendForm(arrayProduct) {
   });
 }
 
+// créer le tableau de produit pour la post methode
 function createArrayProduct() {
   const cartItems = document.querySelector("#cart__items").children;
   var arrayProduct = [];
@@ -234,6 +239,7 @@ function createArrayProduct() {
   return arrayProduct;
 }
 
+// popUp a la suppression d'un item
 function popUpSupprItem(obj) {
   const overlay = document.createElement("div");
   overlay.setAttribute('id', 'overlay')
@@ -242,7 +248,7 @@ function popUpSupprItem(obj) {
   overlay.style.left = "0";
   overlay.style.width = "100%";
   overlay.style.height = "100%";
-  overlay.style.background = "rgba(0, 0, 0, 0.6)";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
   overlay.style.display = "flex";
   overlay.style.alignItems = "center";
   overlay.style.justifyContent = "center";
@@ -252,7 +258,7 @@ function popUpSupprItem(obj) {
   const popUp = document.createElement("p");
   popUp.setAttribute('id', 'popUp')
   popUp.style.fontSize = "25px";
-  popUp.textContent = `L'article ${obj.children[0].textContent} de couleur ${obj.children[1].textContent} a été supprimé. `;
+  popUp.textContent = `L'article ${obj.children[0].children[0].textContent} de couleur ${obj.children[0].children[1].textContent} a été supprimé. `;
   popUp.style.color = "#fff";
   popUp.style.padding = "40px";
   popUp.style.fontWeight = "700";
@@ -264,10 +270,9 @@ function popUpSupprItem(obj) {
     overlay.style.display = "none";
     popUp.style.display = "none";
   }, 2000);
-
-
 }
 
+// post les produit dans l'API
 function postFetch(arrayProduct) {
   fetch("http://localhost:3000/api/products/order", {
     method: "POST",
