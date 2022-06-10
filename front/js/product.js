@@ -1,26 +1,25 @@
-    const localisation = window.location.search;
-    var id = localisation.substring(4);
-    
-    const itemImg = document.querySelector(".item__img");
-    const title = document.querySelector("#title");
-    const price = document.querySelector("#price");
-    const description = document.querySelector("#description");
-    const colors = document.querySelector("#colors");
-    const quantity = document.querySelector("#quantity");
+const url = (new URL(document.location)).searchParams;;
+const id = url.get('id');
+console.log(id);
+const itemImg = document.querySelector(".item__img");
+const title = document.querySelector("#title");
+const price = document.querySelector("#price");
+const description = document.querySelector("#description");
+const colors = document.querySelector("#colors");
+const quantity = document.querySelector("#quantity");
 
-    var myCart = getStorage();
+var myCart = getStorage();
+getFetch(id, itemImg, title, price, description, colors);
 
-    getFetch(id, itemImg, title, price, description, colors);
-
-    document
-        .getElementById("addToCart")
-        .addEventListener("click", function () {
-            addToCart(myCart, id, colors, quantity);
-        })
+document
+    .getElementById("addToCart")
+    .addEventListener("click", function (event) {
+        addToCart(myCart, id, colors, quantity);
+    })
 
 //  Récupère le local storage 
 function getStorage() {
-    var myCart = {};
+    var myCart = [];
     if (JSON.parse(localStorage.getItem("myCart")) !== null) {
         myCart = JSON.parse(localStorage.getItem("myCart"));
         return myCart;
@@ -65,18 +64,47 @@ function addToCart(myCart, id, colors, quantity) {
         quantity.value = 0;
         msgAddToCart(text);
     } else {
-        myCart[`${id}${colors.value}`] = {
-            colors: colors.value,
-            id: id,
-            quantity: quantity.value
+
+        let objet = {}
+        if (myCart.length == 0) {
+            objet = {
+                colors: colors.value,
+                id: id,
+                quantity: quantity.valueAsNumber
+            }
+            myCart.push(objet)
+            localStorage.setItem("myCart", JSON.stringify(myCart))
+            console.log("0");
+        } else {
+            myCart.find(object => {
+                if (object.colors === colors.value && object.id === id) {
+                    object.quantity += quantity.valueAsNumber;
+                    localStorage.setItem("myCart", JSON.stringify(myCart))
+                }
+            });
+            let color = myCart.some(el => el.colors === colors.value);
+            let objectId = myCart.some(el => el.id === id)
+            if ((color == false && objectId == true) || (color == true && objectId == false)|| (color == false && objectId == false)) {
+                
+                objet = {
+                    colors: colors.value,
+                    id: id,
+                    quantity: quantity.valueAsNumber
+                }
+                myCart.push(objet);
+                localStorage.setItem("myCart", JSON.stringify(myCart));
+                console.log("2");
+            }
         }
-        localStorage.setItem("myCart", JSON.stringify(myCart))
         text = "Votre article à bien été ajouté au panier";
-        msgAddToCart(text)
-        
+        msgAddToCart(text);
         return myCart;
     }
 }
+
+
+
+
 
 // informe l'utilisateur que son produit aété ajouté au panier
 function msgAddToCart(text) {

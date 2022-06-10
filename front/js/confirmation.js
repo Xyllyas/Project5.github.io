@@ -1,7 +1,8 @@
-    const orderId = document.getElementById("orderId");
-    const localisation = window.location.search;
-    const id = localisation.substring(4);
+const orderId = document.getElementById("orderId");
+const url = (new URL(document.location)).searchParams;;
+const id = url.get('id');
+// utiliser search param
 
-    orderId.textContent = id;
+orderId.textContent = id;
 
-    localStorage.clear()
+localStorage.clear()

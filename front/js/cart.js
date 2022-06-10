@@ -3,13 +3,12 @@ const totalPrice = document.getElementById("totalPrice");
 const inputQuantity = document.getElementsByClassName("itemQuantity");
 const deleteItem = document.getElementsByClassName("deleteItem");
 var cart = JSON.parse(localStorage.getItem("myCart"))
-
 // regarde si le panier est plein ou vide
-if (cart != null) {
-  var cartId = getCartId(cart);
-} else {
-  cartId = {};
-}
+// if (cart != null) {
+//   var cartId = getCartId(cart);
+// } else {
+//   cartId = [];
+// }
 
 
 
@@ -22,14 +21,14 @@ for (var i = 0; i < input.length; i++) {
     input[i].value = "";
   }
 }
-afficher(cartId, cart);
+afficher(cart);
 
 setInterval(() => {
-  if (inputQuantity.length == Object.keys(cartId).length) {
+  if (inputQuantity.length == cart.length) {
     clearInterval();
 
-    getTotalQuantity(totalQuantity, inputQuantity);
-    getTotalPrice(totalPrice, inputQuantity);
+    getTotal(totalQuantity, totalPrice, inputQuantity);
+    // getTotalPrice(totalPrice, inputQuantity);
 
     var arrayProduct = createArrayProduct();
 
@@ -41,23 +40,11 @@ setInterval(() => {
   }
 }, 1000);
 
-
-// créer un objet contenant les id des produits
-function getCartId(cart) {
-  let nb = 0;
-  let cartId = {};
-  for (let i in Object.keys(cart)) {
-    cartId[`${nb}`] = `${Object.values(cart)[i].id}`
-    nb++;
-  }
-  return cartId
-}
-
 // ajoute à la page tous les produits contenue dans le localStorage
-function afficher(cartId, cart) {
+function afficher(cart) {
   var content = "";
-  for (let i in Object.keys(cartId)) {
-    fetch(`http://localhost:3000/api/products/${Object.values(cartId)[i]}`)
+  cart.forEach(element => {
+    fetch(`http://localhost:3000/api/products/${element.id}`)
       .then((res) => {
         if (res.ok) {
           return res.json();
@@ -65,27 +52,27 @@ function afficher(cartId, cart) {
       })
       .then((data) => {
         content +=
-          `<article class="cart__item" data-id="${data._id}" data-color="${Object.values(cart)[i].colors}">
-                    <div class="cart__item__img">
-                      <img src="${data.imageUrl}" alt="${data.altTxt}">
-                    </div>
-                    <div class="cart__item__content">
-                      <div class="cart__item__content__description">
-                        <h2>${data.name}</h2>
-                        <p>${Object.values(cart)[i].colors}</p>
-                        <p>${data.price}</p>
-                      </div>
-                      <div class="cart__item__content__settings">
-                        <div class="cart__item__content__settings__quantity">
-                          <p>Qté : </p>
-                          <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${Object.values(cart)[i].quantity}">
+          `<article class="cart__item" data-id="${data._id}" data-color="${element.colors}">
+                        <div class="cart__item__img">
+                          <img src="${data.imageUrl}" alt="${data.altTxt}">
                         </div>
-                        <div class="cart__item__content__settings__delete">
-                          <p class="deleteItem">Supprimer</p>
+                        <div class="cart__item__content">
+                          <div class="cart__item__content__description">
+                            <h2>${data.name}</h2>
+                            <p>${element.colors}</p>
+                            <p>${data.price}</p>
+                          </div>
+                          <div class="cart__item__content__settings">
+                            <div class="cart__item__content__settings__quantity">
+                              <p>Qté : </p>
+                              <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${element.quantity}">
+                            </div>
+                            <div class="cart__item__content__settings__delete">
+                              <p class="deleteItem">Supprimer</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </article>`;
+                      </article>`;
 
         document.querySelector("#cart__items").innerHTML = content;
 
@@ -93,82 +80,104 @@ function afficher(cartId, cart) {
       .catch((err) => {
         console.log("erreur :" + err);
       })
-  }
+  })
 }
-
-// récupère la quantité total des produits
-function getTotalQuantity(total, nbItem) {
-  let value = 0;
-  for (let item of nbItem) {
-    value += parseInt(item.value);
-  }
-  total.textContent = value;
-  return value;
-}
-
-// ajoute le prix total de la quantité de chaque produit
-function getTotalPrice(total, nbItem) {
-  let value = 0;
-  let totalPrice = {};
-  let i = 0;
-  let nb = 0;
+// récupère la quantité total des produits et multiplie chaque prix correspondant et l'affiche 
+function getTotal(quantity, prices, nbItem) {
+  let quantité = 0;
+  let quantitéTotal = 0;
+  let totalPrice = [];
+  let price = 0;
+  let i = 0
 
   for (let item of nbItem) {
-    let quantity = 0;
-    let price = 0;
-    quantity += parseInt(item.value);
-    price += parseInt(document.querySelectorAll(".cart__item__content__description")[i].children[2].textContent);
-    totalPrice[nb] = quantity * price;
+    let multiplication = 0;
+    quantité = parseInt(item.value);
+    quantitéTotal += parseInt(item.value);
+    price = parseInt(document.querySelectorAll(".cart__item__content__description")[i].children[2].textContent);
+    multiplication = quantité * price;
+    totalPrice.push(multiplication);
     i++;
-    nb++;
   }
-  total.textContent = (Object.values(totalPrice).reduce((prev, curr) => prev + curr, 0));
+  quantity.textContent = quantitéTotal;
+  let sum = 0;
+  totalPrice.forEach(item => {
+    sum += item;
+  })
+  prices.textContent = sum;
+
 }
 
 // au changement de quantité met a jour la quantité, le prix et le local storage
 function changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart) {
   for (const input of inputQuantity) {
-    input.addEventListener('input', () => {
-      getTotalQuantity(totalQuantity, inputQuantity);
-      getTotalPrice(totalPrice, inputQuantity);
+    input.addEventListener('change', (e) => {
 
-      let quantity = input.closest('article').getElementsByClassName("cart__item__content__settings__quantity")[0].children[1].value;
-      let color = input.closest('article').dataset.color;
-      let id = input.closest('article').dataset.id;
+      getTotal(totalQuantity, totalPrice, inputQuantity);
+      const closest = input.closest('article')
+      let quantity = closest.getElementsByClassName("cart__item__content__settings__quantity")[0].children[1].value;
+      let color = closest.dataset.color;
+      let id = closest.dataset.id;
 
-      for (i = 0; i < Object.values(cart).length; i++) {
-        if (color == Object.values(cart)[i].colors && id == Object.values(cart)[i].id) {
-          Object.values(cart)[i].quantity = quantity;
-          localStorage.setItem("myCart", JSON.stringify(cart));
+      cart.find(element => {
+        if (color == element.colors && id == element.id) {
+
+          if (quantity > 0 && quantity < 101) {
+            element.quantity = quantity;
+            localStorage.setItem("myCart", JSON.stringify(cart));
+            console.log("hello");
+            errorQuantity(closest, true)
+          } else {
+            errorQuantity(closest, false)
+          }
         }
-      }
-    });
-  };
+      });
+      e.stopImmediatePropagation();
+    })
+  }
 }
+
+function errorQuantity(closest, check) {
+  var doc = document.getElementsByClassName('error-quantity');
+
+  if (check == false) {
+    var p = document.createElement('p');
+    p.classList.add('error-quantity');
+    closest.querySelector(".cart__item__content__settings__quantity").appendChild(p)
+    p.textContent = "Veuillez saisir une valeur entre 1 et 100.";
+  } else {
+    if (document.querySelector('.error-quantity') != null) {
+      closest.querySelector('.error-quantity').remove();
+    }
+  }
+}
+
 
 // supprime le produit de la page et du localstorage
 function supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem) {
   for (const suppr of deleteItem) {
-    suppr.addEventListener('click', () => {
+    suppr.addEventListener('click', (e) => {
       let color = suppr.closest('article').dataset.color;
       let id = suppr.closest('article').dataset.id;
-
       var divDesc = suppr.closest('article').children[1];
-
       suppr.closest('article').remove();
-      for (var i = 0; i < Object.keys(cart).length; i++) {
-        if (color == Object.values(cart)[i].colors && id == Object.values(cart)[i].id) {
-          delete cart[Object.keys(cart)[i]];
-          localStorage.setItem("myCart", JSON.stringify(cart));
-        }
-      }
 
-      getTotalQuantity(totalQuantity, inputQuantity);
-      getTotalPrice(totalPrice, inputQuantity);
+      var index = -1;
+      cart.find(item => {
+        if (color == item.colors && id == item.id) {
+          index = cart.indexOf(item);
+        }
+      })
+
+      if (index !== -1) {
+        cart.splice(index, 1);
+        localStorage.setItem("myCart", JSON.stringify(cart));
+      }
+      console.log("hello");
+      getTotal(totalQuantity, totalPrice, inputQuantity);
       createArrayProduct();
       popUpSupprItem(divDesc);
-
-
+      e.stopImmediatePropagation();
     })
   }
 }
@@ -219,16 +228,36 @@ function sendForm(arrayProduct) {
         check++; // si l'input est bon ajoute 1 à check
         if (check == 5) { //si les 5 input sont bon utilise la fonction postFetch
           e.preventDefault();
-          postFetch(arrayProduct);
+          if (cart.length != 0) {
+            postFetch(arrayProduct);
+          } else {
+            let text = "Votre panier est vide.";
+            msgForm(text);
+          }
         }
       } else { // sinon reinitialise a 0
         e.preventDefault();
         check = 0;
+        let text = "Un (ou plusieurs) champ(s) n'a(ont) pas été correctement rempli(s).";
+        msgForm(text);
       }
     }
   });
 }
-
+// message indiquant si le panier est vide ou si le formulaire est mal rempli
+function msgForm(text) {
+  let div = document.createElement("div");
+  let button = document.getElementById("order");
+  div.style.minWidth = "200px";
+  div.style.borderRadius = "40px"
+  div.style.backgroundColor = "#2c3e50";
+  div.style.position = "absolute";
+  div.style.top = "100px";
+  div.style.padding = "30px";
+  div.textContent = text;
+  button.style.position = "relative";
+  button.appendChild(div);
+}
 // créer le tableau de produit pour la post methode
 function createArrayProduct() {
   const cartItems = document.querySelector("#cart__items").children;
@@ -248,7 +277,7 @@ function popUpSupprItem(obj) {
   overlay.style.left = "0";
   overlay.style.width = "100%";
   overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
   overlay.style.display = "flex";
   overlay.style.alignItems = "center";
   overlay.style.justifyContent = "center";
