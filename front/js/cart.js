@@ -3,45 +3,32 @@ const totalPrice = document.getElementById("totalPrice");
 const inputQuantity = document.getElementsByClassName("itemQuantity");
 const deleteItem = document.getElementsByClassName("deleteItem");
 var cart = JSON.parse(localStorage.getItem("myCart"))
-// regarde si le panier est plein ou vide
-// if (cart != null) {
-//   var cartId = getCartId(cart);
-// } else {
-//   cartId = [];
-// }
-
-
 
 
 
 // au refresh de la page vide le contenue du formulaire
-var input = document.getElementsByTagName("input");
-for (var i = 0; i < input.length; i++) {
+const input = document.getElementsByTagName("input");
+for (let i = 0; i < input.length; i++) {
   if (input[i].type === "text" || input[i].type === "email") {
     input[i].value = "";
   }
 }
-afficher(cart);
 
-setInterval(() => {
-  if (inputQuantity.length == cart.length) {
-    clearInterval();
-
-    getTotal(totalQuantity, totalPrice, inputQuantity);
-    // getTotalPrice(totalPrice, inputQuantity);
-
-    var arrayProduct = createArrayProduct();
-
-    changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart);
-    supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem);
+// si le panier est vide créer un tableau vide
+if (cart.length !== 0) {
+  getFetch();
+  var arrayProduct = createArrayProduct();
+} else {
+  getTotal(totalQuantity, totalPrice, inputQuantity);
+  cartEmpty();
+  document.querySelector(".cart__order").style.display = "none";
+}
 
 
-    sendForm(arrayProduct);
-  }
-}, 1000);
+checkForm()
+sendForm(arrayProduct)
 
-// ajoute à la page tous les produits contenue dans le localStorage
-function afficher(cart) {
+function getFetch() {
   var content = "";
   cart.forEach(element => {
     fetch(`http://localhost:3000/api/products/${element.id}`)
@@ -53,35 +40,45 @@ function afficher(cart) {
       .then((data) => {
         content +=
           `<article class="cart__item" data-id="${data._id}" data-color="${element.colors}">
-                        <div class="cart__item__img">
-                          <img src="${data.imageUrl}" alt="${data.altTxt}">
-                        </div>
-                        <div class="cart__item__content">
-                          <div class="cart__item__content__description">
-                            <h2>${data.name}</h2>
-                            <p>${element.colors}</p>
-                            <p>${data.price}</p>
-                          </div>
-                          <div class="cart__item__content__settings">
-                            <div class="cart__item__content__settings__quantity">
-                              <p>Qté : </p>
-                              <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${element.quantity}">
-                            </div>
-                            <div class="cart__item__content__settings__delete">
-                              <p class="deleteItem">Supprimer</p>
-                            </div>
-                          </div>
-                        </div>
-                      </article>`;
+                <div class="cart__item__img">
+                  <img src="${data.imageUrl}" alt="${data.altTxt}">
+                </div>
+                <div class="cart__item__content">
+                  <div class="cart__item__content__description">
+                    <h2>${data.name}</h2>
+                    <p>${element.colors}</p>
+                    <p>${data.price}</p>
+                  </div>
+                  <div class="cart__item__content__settings">
+                    <div class="cart__item__content__settings__quantity">
+                      <p>Qté : </p>
+                      <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${element.quantity}">
+                    </div>
+                    <div class="cart__item__content__settings__delete">
+                      <p class="deleteItem">Supprimer</p>
+                    </div>
+                  </div>
+                </div>
+              </article>`;
 
         document.querySelector("#cart__items").innerHTML = content;
-
+      })
+      .then(() => {
+        getTotal(totalQuantity, totalPrice, inputQuantity);
+        changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart);
+        supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem);
       })
       .catch((err) => {
-        console.log("erreur :" + err);
+        alert(err);
       })
   })
 }
+
+
+
+
+
+
 // récupère la quantité total des produits et multiplie chaque prix correspondant et l'affiche 
 function getTotal(quantity, prices, nbItem) {
   let quantité = 0;
@@ -125,21 +122,18 @@ function changeInputQuantity(inputQuantity, totalQuantity, totalPrice, cart) {
           if (quantity > 0 && quantity < 101) {
             element.quantity = quantity;
             localStorage.setItem("myCart", JSON.stringify(cart));
-            console.log("hello");
             errorQuantity(closest, true)
           } else {
             errorQuantity(closest, false)
           }
         }
       });
-      e.stopImmediatePropagation();
     })
   }
 }
 
+//previens l'utilisateur d'une mauvaise quantité
 function errorQuantity(closest, check) {
-  var doc = document.getElementsByClassName('error-quantity');
-
   if (check == false) {
     var p = document.createElement('p');
     p.classList.add('error-quantity');
@@ -152,38 +146,50 @@ function errorQuantity(closest, check) {
   }
 }
 
-
 // supprime le produit de la page et du localstorage
 function supprItem(totalQuantity, inputQuantity, totalPrice, cart, deleteItem) {
   for (const suppr of deleteItem) {
     suppr.addEventListener('click', (e) => {
       let color = suppr.closest('article').dataset.color;
       let id = suppr.closest('article').dataset.id;
-      var divDesc = suppr.closest('article').children[1];
+      let divDesc = suppr.closest('article').children[1];
       suppr.closest('article').remove();
 
-      var index = -1;
+      let index = -1;
       cart.find(item => {
         if (color == item.colors && id == item.id) {
           index = cart.indexOf(item);
+
         }
       })
-
       if (index !== -1) {
         cart.splice(index, 1);
         localStorage.setItem("myCart", JSON.stringify(cart));
       }
-      console.log("hello");
+
       getTotal(totalQuantity, totalPrice, inputQuantity);
-      createArrayProduct();
+      arrayProduct = createArrayProduct();
       popUpSupprItem(divDesc);
-      e.stopImmediatePropagation();
+      if (cart.length == 0) {
+        document.querySelector(".cart__order").style.display = "none";
+        cartEmpty();
+      }
     })
   }
 }
+// message indiquant que le panier vide
+function cartEmpty() {
+  const contener = document.querySelector("#cart__items");
+  const div = document.createElement("div");
+  div.classList = "cart__item";
+  div.style.fontSize = "30px";
+  div.style.fontWeight = "600"
+  div.textContent = "Votre panier est vide";
+  contener.appendChild(div);
+}
 
 // vérifie le formulaire
-function sendForm(arrayProduct) {
+function checkForm(arrayProduct) {
   document.getElementById("firstName").addEventListener("input", (e) => {
     if (/^[^0-9_!¡?÷?¿\\+=@#$%ˆ&*(){}|~<>;:"[\]]{2,}$/.test(e.target.value)) {
       document.getElementById("firstNameErrorMsg").innerText = "";
@@ -219,52 +225,68 @@ function sendForm(arrayProduct) {
       document.getElementById("emailErrorMsg").innerText = "Email invalide.";
     }
   });
-  // check permet de vérifié chaque input du formulaire 
-  let check = 0;
-
+}
+//verifie chaque input du formulaire avant envoie
+function sendForm(arrayProduct) {
+  const form = document.querySelector(".cart__order__form");
   document.getElementById("order").addEventListener('click', (e) => {
-    for (let i = 0; i < 5; i++) {
-      if (document.querySelector(".cart__order__form").children[i].children[2].textContent == "" && document.querySelector(".cart__order__form").children[i].children[1].value != "") {
+    e.preventDefault();
+    let check = 0;
+    let nbInput = form.length - 1;
+    for (let i = 0; i < nbInput; i++) {
+      if ((form.children[i].children[2].textContent == "" && form.children[i].children[1].value !== "")) {
         check++; // si l'input est bon ajoute 1 à check
-        if (check == 5) { //si les 5 input sont bon utilise la fonction postFetch
-          e.preventDefault();
-          if (cart.length != 0) {
-            postFetch(arrayProduct);
-          } else {
-            let text = "Votre panier est vide.";
+
+        if (check == nbInput) {
+          if (cart.length == 0) { // si le panier est vide previent l'utilisateur
+            // let text = "Votre panier est vide.";
+            // msgForm(text);
+            alert("Le panier est vide")
+            check = 0;
+          } else {//si les 5 input sont bon et que le panier est plein utilise la fonction postFetch
+            let text = "Votre commande a été pris en compte vous allez être redirigé";
             msgForm(text);
+            postFetch(arrayProduct);
+
           }
         }
-      } else { // sinon reinitialise a 0
-        e.preventDefault();
-        check = 0;
-        let text = "Un (ou plusieurs) champ(s) n'a(ont) pas été correctement rempli(s).";
+      }
+      else {// si un des input est mal rempli averti l'utilisateur et arrete la boucle
+        i = nbInput;
+        let text = "Un ou plusieurs champs n'ont pas été correctement remplis.";
         msgForm(text);
       }
     }
-  });
+  })
 }
 // message indiquant si le panier est vide ou si le formulaire est mal rempli
 function msgForm(text) {
-  let div = document.createElement("div");
-  let button = document.getElementById("order");
-  div.style.minWidth = "200px";
-  div.style.borderRadius = "40px"
-  div.style.backgroundColor = "#2c3e50";
-  div.style.position = "absolute";
-  div.style.top = "100px";
-  div.style.padding = "30px";
-  div.textContent = text;
-  button.style.position = "relative";
-  button.appendChild(div);
+  const div = document.querySelector(".cart__order__form__submit");
+  div.style.position = "relative"
+
+  let msg = document.createElement("div");
+  msg.style.minWidth = "200px";
+  msg.style.borderRadius = "40px"
+  msg.style.backgroundColor = "#2c3e50";
+  msg.style.position = "absolute"
+  msg.style.top = "120px"
+  msg.style.padding = "15px";
+  msg.textContent = text;
+  msg.style.textAlign = "center";
+
+  div.appendChild(msg);
+
+  setTimeout(() => {
+    msg.remove()
+  }, 2000);
 }
+
 // créer le tableau de produit pour la post methode
 function createArrayProduct() {
-  const cartItems = document.querySelector("#cart__items").children;
-  var arrayProduct = [];
-  for (i = 0; i < cartItems.length; i++) {
-    arrayProduct.push(cartItems[i].dataset.id);
-  }
+  let arrayProduct = [];
+  cart.forEach(element => {
+    arrayProduct.push(element.id);
+  })
   return arrayProduct;
 }
 
@@ -296,8 +318,8 @@ function popUpSupprItem(obj) {
   overlay.appendChild(popUp);
 
   setTimeout(() => {
-    overlay.style.display = "none";
-    popUp.style.display = "none";
+    overlay.remove();
+    popUp.remove()
   }, 2000);
 }
 
@@ -329,6 +351,6 @@ function postFetch(arrayProduct) {
       location.assign(`confirmation.html?id=${value.orderId}`)
     })
     .catch((err) => {
-      console.log(err);
+      alert(err)
     })
 }

@@ -1,13 +1,11 @@
 const url = (new URL(document.location)).searchParams;;
 const id = url.get('id');
-console.log(id);
 const itemImg = document.querySelector(".item__img");
 const title = document.querySelector("#title");
 const price = document.querySelector("#price");
 const description = document.querySelector("#description");
 const colors = document.querySelector("#colors");
 const quantity = document.querySelector("#quantity");
-
 var myCart = getStorage();
 getFetch(id, itemImg, title, price, description, colors);
 
@@ -74,7 +72,6 @@ function addToCart(myCart, id, colors, quantity) {
             }
             myCart.push(objet)
             localStorage.setItem("myCart", JSON.stringify(myCart))
-            console.log("0");
         } else {
             myCart.find(object => {
                 if (object.colors === colors.value && object.id === id) {
@@ -93,7 +90,6 @@ function addToCart(myCart, id, colors, quantity) {
                 }
                 myCart.push(objet);
                 localStorage.setItem("myCart", JSON.stringify(myCart));
-                console.log("2");
             }
         }
         text = "Votre article à bien été ajouté au panier";
@@ -113,15 +109,15 @@ function msgAddToCart(text) {
     msg.style.minWidth = "200px";
     msg.style.backgroundColor = "#2c3e50";
     msg.style.position = "absolute";
-    msg.style.top = "100px";
-    msg.style.padding = "30px";
+    msg.style.top = "120px";
+    msg.style.padding = "15px";
     msg.style.borderRadius = "40px";
     msg.textContent = text;
     button.style.position = "relative";
     button.appendChild(msg);
 
     setTimeout(() => {
-        msg.style.display = "none";
+        msg.remove();
     }, 2000)
 }
 
